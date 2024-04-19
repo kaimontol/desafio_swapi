@@ -1,42 +1,74 @@
-import React, {Component} from 'react';
-import Pagination from './Pagination';
-import List from './List';
-import axios from 'axios';
+// App.js
 
-let pageNum = 1;
+import React, { useState, useEffect } from 'react';
+import { getAllCharacters, getPeopleCount } from './api';
+import './App.css';
 
-class App extends Component {
-  constructor(props){
-    super(props);
-    
-    this.state = {
-      people: [],
-    }
-    this.getPeople = this.getPeople.bind(this);
-  }
-  getPeople(){
-      return axios.get("https://swapi.dev/api/people/?page=")
-    .then ((response) => {
-      console.log(response.data.results);
-      this.setState( { people: response.data.results } )
-    })
-  }
+function App() {
+    const [characters, setCharacters] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [error, setError] = useState(null);
 
-  componentDidMount(){
-    this.getPeople()
-  }
-  render() {
-    const {people} = this.state;
+    useEffect(() => {
+        fetchCharacters();
+    }, [currentPage]);
+
+    useEffect(() => {
+        fetchTotalPages();
+    }, []);
+
+    const fetchCharacters = async () => {
+        try {
+            const data = await getAllCharacters(currentPage);
+            setCharacters(data);
+            setError(null);
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const fetchTotalPages = async () => {
+      try {
+          const count = await getPeopleCount(); // Chame a função getPeopleCount para obter o número total de personagens
+          const totalPagesCount = Math.ceil(count / 10); // Assumindo que cada página mostra 10 personagens
+          setTotalPages(totalPagesCount);
+          setError(null);
+      } catch (error) {
+          setError(error.message);
+      }
+  };
+
+    const handlePrevPage = () => {
+        setCurrentPage(prevPage => Math.max(prevPage - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage(prevPage => prevPage + 1);
+    };
+
     return (
-      <div className="App">
-        <Pagination
-         peoplePerPage={10}
-         totalPeople={82}
-         paginate={pageNum}/>
-        <List people={people} />
-      </div>
+        <div className="container">
+            <h1>Lista de Personagens Star Wars</h1>
+            {error && <p className="error">{error}</p>}
+            <div className="list-container">
+                <ul>
+                    {characters.map(character => (
+                        <li key={character.name}>{character.name}</li>
+                    ))}
+                </ul>
+            </div>
+            <div className="pagination">
+                <button onClick={handlePrevPage} disabled={currentPage === 1} className="pagination-button">
+                    Página Anterior
+                </button>
+                <span className="page-number">Página {currentPage} de {totalPages}</span>
+                <button onClick={handleNextPage} disabled={currentPage === totalPages} className="pagination-button">
+                    Próxima Página
+                </button>
+            </div>
+        </div>
     );
-  }
 }
 
 export default App;
